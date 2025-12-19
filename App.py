@@ -44,14 +44,21 @@ def download_from_url(url):
     ydl_opts = {
         'outtmpl': output_path,
         'quiet': True,
-        'format': 'bestaudio[ext=m4a]',  # تنزيل صوت جاهز دون حاجة لدمج فيديو
-        'ffmpeg_location': '/usr/bin/ffmpeg',  # مسار ffmpeg في Streamlit Cloud
+        'format': 'bestaudio[ext=m4a]',  # تنزيل صوت جاهز
+        'ffmpeg_location': '/usr/bin/ffmpeg',
+        'sleep_interval': 5,  # تأخير 5 ثواني بين الطلبات لتجنب 403
+        'sleep_requests': 1,  # نوم بعد كل طلب
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',  # تقليد متصفح
+        'no_check_certificate': True,  # تجاهل مشاكل الشهادات
+        #'cookiefile': 'cookies.txt',  # إذا أضفت ملف كوكيز في الريبو
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
+            # مسح الكاش إذا أمكن
+            ydl.cache.remove()
             ydl.download([url])
         except Exception as e:
-            st.error(f"خطأ في التنزيل: {str(e)}. جرب رابطًا آخر أو تحقق من الإنترنت.")
+            st.error(f"خطأ في التنزيل: {str(e)}. جرب تحديث yt-dlp أو رابط آخر.")
             return None, None
     downloaded_file = [f for f in os.listdir(temp_dir) if os.path.isfile(os.path.join(temp_dir, f))][0]
     return os.path.join(temp_dir, downloaded_file), temp_dir
@@ -61,23 +68,19 @@ def process_input(input_path, is_url, output_type, quality_mode):
         st.error("ارفع ملفًا أو أدخل رابطًا.")
         return None, None
 
-    # إذا رابط، نزله أولاً
     download_dir = None
     if is_url:
         st.write("جارٍ تنزيل الملف من الرابط...")
         input_path, download_dir = download_from_url(input_path)
-        if input_path is None:  # إذا فشل التنزيل
+        if input_path is None:
             return None, None
 
-    # كشف نوع الملف
     ext = os.path.splitext(input_path)[1].lower()
     is_video = ext not in [".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg"]
 
-    # إذا ملف صوتي، اجبر output_type على "صوت"
     if not is_video:
         output_type = "صوت"
 
-    # تحديد shifts بناءً على الجودة
     shifts = 0 if quality_mode == "أسرع (جودة أقل)" else 5
 
     extractor = VocalExtractor()
@@ -121,7 +124,7 @@ def process_input(input_path, is_url, output_type, quality_mode):
             output_path = os.path.join("outputs", f"vocals_{timestamp}.mp3")
             extractor.save_as_mp3(vocals_wav, output_path, bitrate="192k")
             return output_path, "audio"
-        else:  # "فيديو"
+        else:
             output_path = os.path.join("outputs", f"no_music_{timestamp}.mp4")
             cmd = [
                 "ffmpeg", "-i", input_path,
