@@ -11,7 +11,7 @@ import time
 import yt_dlp
 
 # إعداد الصفحة
-st.set_page_config(page_title="عازل الموسيقى المستقر", page_icon="🎙️")
+st.set_page_config(page_title="إزالة الموسيقى", page_icon="🎙️")
 
 class VocalExtractor:
     def __init__(self):
@@ -43,8 +43,8 @@ def download_video(url):
         ydl.download([url])
     return output_path
 
-st.title("🎙️ عازل الموسيقى (النسخة المصفحة)")
-st.info("تم تحسين الكود ليعمل بذاكرة منخفضة لتجنب الانهيار.")
+st.title("🎙️ إزالة الموسيقى (مع دعم الروابط)")
+st.info("تم تحسين الموقع ليقبل الروابط")
 
 tab1, tab2 = st.tabs(["🔗 رابط", "📂 رفع ملف"])
 source_path = None
@@ -61,13 +61,13 @@ quality_mode = st.select_slider(
     value="قوي"
 )
 
-if st.button("🚀 ابدأ العزل الآمن"):
+if st.button("أزل الموسيقى"):
     try:
         temp_dir = f"proc_{int(time.time())}"
         os.makedirs(temp_dir, exist_ok=True)
 
         if url_input:
-            with st.spinner("جارٍ التحميل..."):
+            with st.spinner("جاري التحميل..."):
                 source_path = download_video(url_input)
         elif uploaded_file:
             source_path = os.path.join(temp_dir, uploaded_file.name)
@@ -76,7 +76,7 @@ if st.button("🚀 ابدأ العزل الآمن"):
             st.warning("يرجى تقديم ملف.")
             st.stop()
 
-        with st.status("جارٍ الفصل (نظام توفير الذاكرة)...") as s:
+        with st.status("جارٍ الإزالة ...") as s:
             extractor = VocalExtractor()
             model = extractor.get_model()
             wav_input = os.path.join(temp_dir, "audio.wav")
@@ -108,7 +108,7 @@ if st.button("🚀 ابدأ العزل الآمن"):
 
             vocals_wav = os.path.join(temp_dir, "vocals.wav")
             torchaudio.save(vocals_wav, vocals, sr)
-            s.update(label="اكتمل العزل بنجاح!", state="complete")
+            s.update(label="اكتمل العملية بنجاح!", state="complete")
 
         # الإنتاج النهائي
         final_mp3 = "final_vocal.mp3"
